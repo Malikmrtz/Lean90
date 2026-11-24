@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Lean 90 Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single-column training console. Header stats, week strip, day tabs, exercise cards with tappable sets, sticky rest timer. */
+:root {
+  --bg: #0d1117;
+  --surface: #151b24;
+  --surface-2: #1c2431;
+  --line: #263041;
+  --fg: #e8edf4;
+  --muted: #8b97a8;
+  --accent: #5cc8ff;
+  --accent-ink: #04202e;
+  --done: #3fb98a;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f5f8; --surface: #ffffff; --surface-2: #e9edf3; --line: #d5dce6;
+    --fg: #121820; --muted: #566274; --accent: #0a74b5; --accent-ink: #ffffff; --done: #1c8a62;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f3f5f8; --surface: #ffffff; --surface-2: #e9edf3; --line: #d5dce6;
+  --fg: #121820; --muted: #566274; --accent: #0a74b5; --accent-ink: #ffffff; --done: #1c8a62;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.5;
+  padding-block: 20px 120px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h1 { font-size: 44px; line-height: 1; text-transform: uppercase; }
+h2 { font-size: 26px; text-transform: uppercase; }
+h3 { font-size: 21px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.sub { color: var(--muted); margin: 8px 0 0; max-width: 52ch; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-mono); font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.dow { text-align: center; font-family: var(--font-mono); font-size: 11px; padding: 8px 0; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.dow.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.tabs { display: flex; gap: 8px; }
+.tab { flex: 1; min-width: 0; font: inherit; font-family: var(--font-display); font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: 0.03em; padding: 10px 6px; border-radius: 10px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dayhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.dayhead p { margin: 4px 0 0; color: var(--muted); }
+.prog { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--done); transition: width .25s; }
+.list { display: flex; flex-direction: column; gap: 12px; }
+.ex { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ex-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.ex-top .rx { font-family: var(--font-mono); font-size: 13px; color: var(--accent); white-space: nowrap; }
+.ex .note { margin: 0; color: var(--muted); font-size: 13px; }
+.sets { display: flex; gap: 8px; flex-wrap: wrap; }
+.set { font-family: var(--font-mono); font-size: 14px; min-width: 56px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); cursor: pointer; }
+.set[aria-pressed="true"] { background: var(--done); border-color: var(--done); color: #04150e; font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.rule { background: var(--surface-2); border-radius: 8px; padding: 12px; min-width: 0; }
+.rule b { display: block; font-family: var(--font-mono); font-size: 18px; font-variant-numeric: tabular-nums; }
+.rule span { font-size: 13px; color: var(--muted); }
+ul.tips { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.small { font-size: 12px; color: var(--muted); margin: 0; }
+.resetrow { display: flex; justify-content: flex-end; }
+.ghost { font: inherit; font-size: 13px; background: none; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.timer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.timer-in { max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 8px; }
+.clock { font-family: var(--font-mono); font-size: 24px; min-width: 76px; font-variant-numeric: tabular-nums; }
+.clock.done { color: var(--done); }
+.tbtn { flex: 1; min-width: 0; font: inherit; font-family: var(--font-mono); font-size: 13px; padding: 10px 4px; border-radius: 8px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+@media (max-width: 420px) { h1 { font-size: 38px; } }
+.logrow { display: flex; gap: 8px; }
+.logrow input { flex: 1; min-width: 0; font: inherit; font-family: var(--font-mono); font-size: 16px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); }
+.addbtn { font: inherit; font-family: var(--font-display); font-weight: 700; font-size: 18px; text-transform: uppercase; padding: 8px 18px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); border: 0; cursor: pointer; }
+.err { color: #ff7a7a; font-size: 13px; margin: 0; }
+.chartbox { overflow-x: auto; }
+.chartbox svg { display: block; width: 100%; height: auto; }
+.loglist { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.loglist div { display: flex; justify-content: space-between; }
+</style>
+
+</head><body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">4 days / week · 60–70 min</div>
+    <h1>Lean 90 Plan</h1>
+    <p class="sub">Upper/lower split four days a week plus daily walking. Every muscle group is trained twice a week. Built for a 180 cm, 90 kg start.</p>
+  </header>
+
+  <section class="stats" aria-label="Starting point">
+    <div class="stat"><b>180 cm</b><span>Height</span></div>
+    <div class="stat"><b>90 kg</b><span>Start weight</span></div>
+    <div class="stat"><b>~27.8</b><span>BMI</span></div>
+  </section>
+
+  <section>
+    <div class="week" id="week" aria-label="Weekly schedule"></div>
+  </section>
+
+  <section class="tabs" role="tablist" id="tabs" aria-label="Workout day"></section>
+
+  <section>
+    <div class="dayhead">
+      <div>
+        <h2 id="dayTitle"></h2>
+        <p id="dayFocus"></p>
+      </div>
+      <div class="prog" id="prog"></div>
+    </div>
+    <div class="bar" style="margin-top:12px"><i id="barFill"></i></div>
+  </section>
+
+  <section class="list" id="list"></section>
+  <div class="resetrow"><button class="ghost" id="reset" type="button">Reset this day</button></div>
+
+  <section class="card">
+    <h2>Weight log</h2>
+    <div class="logrow">
+      <input id="wIn" type="number" inputmode="decimal" step="0.1" min="30" max="300" placeholder="Today's weight (kg)" aria-label="Today's weight in kilograms">
+      <button class="addbtn" id="wAdd" type="button">Add</button>
+    </div>
+    <p class="err" id="wErr" hidden></p>
+    <div class="chartbox" id="wChart"></div>
+    <div class="loglist" id="wList"></div>
+    <p class="small">Weigh in the morning after the bathroom, before eating. 3 times a week is enough. Look at the trend, not single days.</p>
+  </section>
+
+  <section class="card">
+    <h2>Daily targets</h2>
+    <div class="rules">
+      <div class="rule"><b>8–10k</b><span>Steps per day. This does most of the fat loss work.</span></div>
+      <div class="rule"><b>~2,200</b><span>kcal per day, a moderate deficit (estimate).</span></div>
+      <div class="rule"><b>150–170 g</b><span>Protein per day to keep muscle while cutting.</span></div>
+      <div class="rule"><b>7+ h</b><span>Sleep. Recovery decides how fast you progress.</span></div>
+    </div>
+    <p class="small">Calories are a starting estimate. Weigh yourself 3 mornings a week and average it. Aim to lose 0.4–0.7 kg per week. If the average stalls for 2 weeks, cut about 150 kcal or add 2k steps.</p>
+  </section>
+
+  <section class="card">
+    <h2>How to progress</h2>
+    <ul class="tips">
+      <li>Leave 1–2 reps in reserve on every set. Stop before form breaks down.</li>
+      <li>When you hit the top of the rep range on all sets, add the smallest weight jump next session.</li>
+      <li>Missed a day? Do not double up. Just continue with the next workout.</li>
+      <li>Short on time? Drop the last isolation exercise (curls, calves, abs) and keep the big lifts.</li>
+      <li>Week 1 should feel easy. Learn the movements first.</li>
+      <li>Rest 2 minutes after heavy compound lifts and 60–90 seconds after isolation work.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="timer">
+  <div class="timer-in">
+    <div class="clock" id="clock" aria-live="off">0:00</div>
+    <button class="tbtn" type="button" data-s="60">Rest 1:00</button>
+    <button class="tbtn" type="button" data-s="90">Rest 1:30</button>
+    <button class="tbtn" type="button" data-s="120">Rest 2:00</button>
+  </div>
+</div>
+
+<script>
+var DAYS = [
+  { key: "a", tab: "Upper A", title: "Upper Body A", focus: "Chest, back, shoulders, biceps, triceps and abs.", dow: 0,
+    ex: [
+      { n: "Incline dumbbell press", s: 3, r: "8–10", note: "Upper chest. Lower for 2 seconds, press smooth." },
+      { n: "Chest-supported row", s: 3, r: "8–10", note: "Mid back. Squeeze shoulder blades together." },
+      { n: "Seated dumbbell shoulder press", s: 3, r: "8–10", note: "Front delts. Back against the pad." },
+      { n: "Lat pulldown", s: 3, r: "10–12", note: "Lats. Pull elbows down toward your ribs." },
+      { n: "Cable lateral raise", s: 3, r: "15", note: "Side delts. Light weight, lead with the elbow." },
+      { n: "EZ-bar curl", s: 3, r: "10–12", note: "Biceps. No swinging." },
+      { n: "Rope triceps pushdown", s: 3, r: "10–12", note: "Triceps. Elbows pinned to your sides." },
+      { n: "Cable crunch", s: 3, r: "12–15", note: "Abs. Curl your ribs toward your hips." }
+    ] },
+  { key: "b", tab: "Lower A", title: "Lower Body A", focus: "Quads, hamstrings, glutes, calves and abs. Heavier day.", dow: 1,
+    ex: [
+      { n: "Back squat or hack squat", s: 4, r: "6–8", note: "Quads and glutes. Hit parallel or deeper." },
+      { n: "Romanian deadlift", s: 3, r: "8–10", note: "Hamstrings and glutes. Push hips back." },
+      { n: "Walking lunges", s: 3, r: "12 / leg", note: "Quads and glutes. Steady pace." },
+      { n: "Lying leg curl", s: 3, r: "10–12", note: "Hamstrings. Slow on the way down." },
+      { n: "Standing calf raise", s: 4, r: "10–15", note: "Calves. Full stretch, pause at the top." },
+      { n: "Hanging knee raise", s: 3, r: "10–15", note: "Lower abs. Do not swing." }
+    ] },
+  { key: "c", tab: "Upper B", title: "Upper Body B", focus: "Heavier pressing and pulling plus rear delts, forearms and arms.", dow: 3,
+    ex: [
+      { n: "Flat barbell or dumbbell bench press", s: 3, r: "6–8", note: "Chest and triceps. Feet planted, shoulder blades tucked." },
+      { n: "Pull-ups or assisted pull-ups", s: 3, r: "max", note: "Lats and biceps. Stop 1 rep before failure." },
+      { n: "Cable fly", s: 3, r: "12–15", note: "Chest. Hug a big tree, squeeze in the middle." },
+      { n: "One-arm dumbbell row", s: 3, r: "10 / arm", note: "Back. Pull to your hip." },
+      { n: "Face pull", s: 3, r: "15", note: "Rear delts and upper back. Pull to your forehead." },
+      { n: "Hammer curl", s: 3, r: "10–12", note: "Biceps and forearms." },
+      { n: "Overhead triceps extension", s: 3, r: "10–12", note: "Triceps long head. Keep elbows close." },
+      { n: "Farmer's carry", s: 3, r: "30 m", note: "Forearms, traps and core. Heavy dumbbells, tall posture." }
+    ] },
+  { key: "d", tab: "Lower B", title: "Lower Body B", focus: "Posterior chain, glutes, calves, core and a short finisher.", dow: 4,
+    ex: [
+      { n: "Trap bar or barbell deadlift", s: 3, r: "5", note: "Hamstrings, glutes, back. Reset every rep." },
+      { n: "Leg press", s: 3, r: "10–12", note: "Quads. Full range, do not lock the knees." },
+      { n: "Barbell or machine hip thrust", s: 3, r: "8–10", note: "Glutes. Pause 1 second at the top." },
+      { n: "Bulgarian split squat", s: 3, r: "8–10 / leg", note: "Quads and glutes. Hold a rail for balance." },
+      { n: "Seated calf raise", s: 4, r: "12–15", note: "Soleus (lower calf). Slow reps." },
+      { n: "Plank", s: 3, r: "45 s", note: "Core. Ribs down, squeeze glutes." },
+      { n: "Incline treadmill walk", s: 1, r: "10 min", note: "Incline 8–10%, brisk pace. Finisher." }
+    ] }
+];
+var WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+var STORE = "lean90-v1";
+var state = {};
+try { state = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch (e) { state = {}; }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+var cur = 0;
+try { var h = location.hash.replace("#", ""); DAYS.forEach(function (d, i) { if (d.key === h) cur = i; }); } catch (e) {}
+
+function $(id) { return document.getElementById(id); }
+
+function renderWeek() {
+  var el = $("week"); el.innerHTML = "";
+  WEEK.forEach(function (w, i) {
+    var d = document.createElement("div");
+    var idx = DAYS.findIndex(function (x) { return x.dow === i; });
+    d.className = "dow" + (idx >= 0 ? " on" : "");
+    d.textContent = idx >= 0 ? w + " " + DAYS[idx].key.toUpperCase() : w;
+    el.appendChild(d);
+  });
+}
+
+function renderTabs() {
+  var el = $("tabs"); el.innerHTML = "";
+  DAYS.forEach(function (d, i) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tab"; b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", i === cur ? "true" : "false");
+    b.textContent = d.tab;
+    b.onclick = function () { cur = i; try { history.replaceState(null, "", "#" + d.key); } catch (e) {} render(); };
+    el.appendChild(b);
+  });
+}
+
+function render() {
+  var d = DAYS[cur];
+  renderTabs();
+  $("dayTitle").textContent = d.title;
+  $("dayFocus").textContent = d.focus;
+  var list = $("list"); list.innerHTML = "";
+  var total = 0, done = 0;
+  d.ex.forEach(function (e, ei) {
+    var card = document.createElement("article"); card.className = "ex";
+    var top = document.createElement("div"); top.className = "ex-top";
+    var t = document.createElement("h3"); t.textContent = e.n;
+    var rx = document.createElement("span"); rx.className = "rx";
+    rx.textContent = e.s + " × " + e.r;
+    top.appendChild(t); top.appendChild(rx); card.appendChild(top);
+    var note = document.createElement("p"); note.className = "note"; note.textContent = e.note; card.appendChild(note);
+    var sets = document.createElement("div"); sets.className = "sets";
+    for (var si = 0; si < e.s; si++) {
+      (function (si) {
+        var k = d.key + "-" + ei + "-" + si;
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "set";
+        var on = !!state[k];
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        b.textContent = "Set " + (si + 1);
+        total++; if (on) done++;
+        b.onclick = function () {
+          state[k] = !state[k]; save(); render();
+          if (state[k]) startTimer(e.n.indexOf("Plank") === 0 || e.s === 1 ? 0 : 90);
+        };
+        sets.appendChild(b);
+      })(si);
+    }
+    card.appendChild(sets); list.appendChild(card);
+  });
+  $("prog").textContent = done + " / " + total + " sets";
+  $("barFill").style.width = (total ? Math.round(done / total * 100) : 0) + "%";
+}
+
+$("reset").onclick = function () {
+  var d = DAYS[cur];
+  Object.keys(state).forEach(function (k) { if (k.indexOf(d.key + "-") === 0) delete state[k]; });
+  save(); render();
+};
+
+var tid = null, left = 0;
+function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function startTimer(s) {
+  clearInterval(tid);
+  var c = $("clock"); c.classList.remove("done");
+  if (!s) { c.textContent = "0:00"; return; }
+  left = s; c.textContent = fmt(left);
+  tid = setInterval(function () {
+    left--; c.textContent = fmt(Math.max(left, 0));
+    if (left <= 0) { clearInterval(tid); c.classList.add("done"); c.textContent = "Go"; }
+  }, 1000);
+}
+Array.prototype.forEach.call(document.querySelectorAll(".tbtn"), function (b) {
+  b.onclick = function () { startTimer(parseInt(b.getAttribute("data-s"), 10)); };
+});
+
+renderWeek();
+render();
+
+var LOGKEY = "lean90-weights";
+var logs = [];
+try { logs = JSON.parse(localStorage.getItem(LOGKEY) || "[]"); } catch (e) { logs = []; }
+function saveLogs() { try { localStorage.setItem(LOGKEY, JSON.stringify(logs)); } catch (e) {} }
+function todayStr() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function renderLog() {
+  var box = $("wChart"), list = $("wList");
+  if (!logs.length) { box.innerHTML = ""; list.innerHTML = "<div><span>No entries yet. Start weight: 90 kg.</span></div>"; return; }
+  var sorted = logs.slice().sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+  var ws = sorted.map(function (x) { return x.w; });
+  var min = Math.floor(Math.min.apply(null, ws) - 1), max = Math.ceil(Math.max.apply(null, ws) + 1);
+  var W = 320, H = 150, L = 34, R = 10, T = 12, B = 22;
+  function X(i) { return sorted.length === 1 ? (L + (W - L - R) / 2) : L + i * (W - L - R) / (sorted.length - 1); }
+  function Y(v) { return T + (max - v) * (H - T - B) / (max - min); }
+  var g = "";
+  for (var k = 0; k <= 3; k++) {
+    var v = min + (max - min) * k / 3, y = Y(v);
+    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="var(--line)" stroke-width="1"/>';
+    g += '<text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="var(--muted)" font-family="monospace">' + v.toFixed(0) + '</text>';
+  }
+  var pts = sorted.map(function (x, i) { return X(i) + "," + Y(x.w); }).join(" ");
+  var line = sorted.length > 1 ? '<polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' : "";
+  var dots = sorted.map(function (x, i) { return '<circle cx="' + X(i) + '" cy="' + Y(x.w) + '" r="' + (i === sorted.length - 1 ? 5 : 3) + '" fill="var(--accent)"/>'; }).join("");
+  box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Weight over time">' + g + line + dots + '</svg>';
+  var first = sorted[0].w, last = sorted[sorted.length - 1].w, diff = last - first;
+  var html = '<div><span>Now</span><span>' + last.toFixed(1) + ' kg</span></div><div><span>Change since first entry</span><span>' + (diff > 0 ? "+" : "") + diff.toFixed(1) + ' kg</span></div>';
+  sorted.slice(-5).reverse().forEach(function (x) { html += '<div><span>' + x.d + '</span><span>' + x.w.toFixed(1) + ' kg</span></div>'; });
+  list.innerHTML = html;
+}
+$("wAdd").onclick = function () {
+  var inp = $("wIn"), err = $("wErr"), v = parseFloat(String(inp.value).replace(",", "."));
+  if (!(v >= 30 && v <= 300)) { err.textContent = "Enter your weight in kg, for example 89.6"; err.hidden = false; return; }
+  err.hidden = true;
+  var t = todayStr();
+  logs = logs.filter(function (x) { return x.d !== t; });
+  logs.push({ d: t, w: Math.round(v * 10) / 10 });
+  saveLogs(); inp.value = ""; renderLog();
+};
+$("wIn").oninput = function () { $("wErr").hidden = true; };
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
+renderLog();
+</script>
+</body></html>
